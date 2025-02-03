@@ -1,71 +1,68 @@
 [package]
 name = "zellij"
-version = "0.6.0"
+version = "0.42.0"
 authors = ["Aram Drevekenin <aram@poor.dev>"]
-edition = "2018"
+edition = "2021"
 description = "A terminal workspace with batteries included"
 license = "MIT"
 repository = "https://github.com/zellij-org/zellij"
 homepage = "https://zellij.dev"
-include = ["src/**/*", "assets/plugins/*", "assets/layouts/*", "LICENSE.md", "README.md", "!**/*_test.*", "!**/tests/**/*"]
+include = ["src/**/*", "assets/layouts/*", "assets/config/*", "LICENSE.md", "README.md", "!**/*_test.*", "!**/tests/**/*"]
+# NOTE: When updating this, modify `channel` in `rust-toolchain.toml` accordingly
+rust-version = "1.84"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ansi_term = "0.12.1"
-backtrace = "0.3.55"
-bincode = "1.3.1"
-directories-next = "2.0"
-futures = "0.3.5"
-libc = "0.2"
-nix = "0.19.1"
-nom = "6.0.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde_yaml = "0.8"
-signal-hook = "0.3"
-strip-ansi-escapes = "0.1.0"
-structopt = "0.3"
-termion = "1.5.0"
-termios = "0.3"
-unicode-truncate = "0.2.0"
-unicode-width = "0.1.8"
-vte = "0.8.0"
-strum = "0.20.0"
-lazy_static = "1.4.0"
-wasmer = "1.0.0"
-wasmer-wasi = "1.0.0"
-interprocess = "1.0.1"
-zellij-tile = { path = "zellij-tile/", version = "1.0.0" }
-
-[dependencies.async-std]
-version = "1.3.0"
-features = ["unstable"]
+zellij-client = { path = "zellij-client/", version = "0.42.0" }
+zellij-server = { path = "zellij-server/", version = "0.42.0" }
+zellij-utils = { path = "zellij-utils/", version = "0.42.0" }
+thiserror = "1.0.40"
+names = { version = "0.14.0", default-features = false }
+log = "0.4.17"
+dialoguer = "0.10.4"
+suggest = "0.4.0"
 
 [dev-dependencies]
-insta = "1.6.0"
-
-[build-dependencies]
-structopt = "0.3"
+insta = { version = "1.6.0", features = ["backtrace"] }
+ssh2 = "0.9.1"
+rand = "0.8.0"
+regex = "1.8.1"
 
 [workspace]
 members = [
-    "zellij-tile",
+    "default-plugins/compact-bar",
     "default-plugins/status-bar",
     "default-plugins/strider",
     "default-plugins/tab-bar",
+    "default-plugins/fixture-plugin-for-tests",
+    "default-plugins/session-manager",
+    "default-plugins/configuration",
+    "default-plugins/plugin-manager",
+    "zellij-client",
+    "zellij-server",
+    "zellij-utils",
+    "zellij-tile",
+    "zellij-tile-utils",
+    "xtask",
     ".",
 ]
 
+[profile.dev-opt]
+inherits = "dev"
+
+[profile.dev-opt.package."*"]
+opt-level = 3
+
 [profile.release]
 lto = true
+strip = true
 
 [package.metadata.deb]
 depends = "$auto"
 license-file = ["LICENSE.md", "4"]
 assets = [
-  # TODO?
-  # ["assets/man/zellij.1", "usr/share/man/man1/zellij.1", "644"],
+  ["assets/man/zellij.1", "usr/share/man/man1/zellij.1", "644"],
   ["target/release/zellij", "usr/bin/zellij", "755"],
   ["GOVERNANCE.md", "usr/share/doc/zellij/GOVERNANCE.md", "644"],
   ["README.md", "usr/share/doc/zellij/README.md", "644"],
@@ -75,3 +72,21 @@ assets = [
   ["assets/completions/zellij.fish", "usr/share/fish/vendor_completions.d/zellij.fish", "644"],
   ["assets/completions/_zellij", "usr/share/zsh/vendor-completions/_zellij", "644"],
 ]
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[features]
+# See remarks in zellij_utils/Cargo.toml
+default = ["plugins_from_target", "vendored_curl"]
+plugins_from_target = ["zellij-utils/plugins_from_target"]
+disable_automatic_asset_installation = ["zellij-utils/disable_automatic_asset_installation"]
+vendored_curl = ["zellij-utils/vendored_curl"]
+unstable = ["zellij-client/unstable", "zellij-utils/unstable"]
+singlepass = ["zellij-server/singlepass"]
+
+# uncomment this when developing plugins in the Zellij UI to make plugin compilation faster
+# [profile.dev.package."*"]
+# opt-level = 3
